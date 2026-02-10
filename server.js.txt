@@ -1,0 +1,59 @@
+import express from "express";
+import fetch from "node-fetch";
+import cors from "cors";
+
+const app = express();
+app.use(cors());
+app.use(express.json());
+app.use(express.static("public"));
+
+const HEADERS = {
+  "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)",
+  "accept": "*/*",
+  "referer": "https://www.terabox.com/",
+  "origin": "https://www.terabox.com"
+};
+
+// Get video info
+app.get("/api/terabox", async (req, res) => {
+  try {
+    const { id } = req.query;
+    if (!id) return res.status(400).json({ error: "Missing id" });
+
+    const page = await fetch(`https://www.terabox.com/s/${id}`, { headers: HEADERS });
+    const html = await page.text();
+
+    const match = html.match(/window\\.__DATA__\\s*=\\s*(\\{.*?\\});/s);
+    if (!match) throw "DATA not found";
+
+    const data = JSON.parse(match[1]);
+    const file = data.file_list?.[0];
+    if (!file) throw "File not found";
+
+    res.json({
+      name: file.server_filename,
+      size: file.size,
+      url: file.dlink
+    });
+
+  } catch (e) {
+    res.status(500).json({ error: "TeraBox blocked or invalid link" });
+  }
+});
+
+// Stream video
+app.get("/api/stream", async (req, res) => {
+  try {
+    const { url } = req.query;
+    if (!url) return res.sendStatus(400);
+
+    const r = await fetch(url, { headers: HEADERS });
+    res.setHeader("Content-Type", "video/mp4");
+    r.body.pipe(res);
+  } catch (e) {
+    res.sendStatus(500);
+  }
+});
+
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => console.log("Server running on", PORT));

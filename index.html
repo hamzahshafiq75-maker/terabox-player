@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>TeraBox Player</title>
+</head>
+<body style="background:#111;color:#fff;font-family:sans-serif;text-align:center;padding:30px">
+
+<h2>TeraBox Player</h2>
+
+<input id="link" style="width:80%;padding:12px" placeholder="Paste TeraBox link">
+<br><br>
+<button onclick="play()">Play</button>
+
+<p id="status"></p>
+
+<video id="v" controls style="width:80%;margin-top:20px;display:none"></video>
+<br>
+<a id="dl" style="display:none;color:#0f0" download>Download</a>
+
+<script>
+async function play(){
+  const link = document.getElementById("link").value;
+  const id = link.split("/s/")[1]?.split("?")[0];
+  const status = document.getElementById("status");
+
+  status.innerText = "Loading...";
+
+  const r = await fetch(`/api/terabox?id=${id}`);
+  const j = await r.json();
+
+  if(!j.url){
+    status.innerText = "Blocked or invalid link";
+    return;
+  }
+
+  const stream = `/api/stream?url=${encodeURIComponent(j.url)}`;
+
+  const v = document.getElementById("v");
+  v.src = stream;
+  v.style.display = "block";
+  v.load();
+
+  const dl = document.getElementById("dl");
+  dl.href = j.url;
+  dl.style.display = "block";
+  dl.innerText = "Download Video";
+
+  status.innerText = "Loaded";
+}
+</script>
+
+</body>
+</html>
