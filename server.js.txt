@@ -47,13 +47,28 @@ app.get("/api/stream", async (req, res) => {
     const { url } = req.query;
     if (!url) return res.sendStatus(400);
 
-    const r = await fetch(url, { headers: HEADERS });
-    res.setHeader("Content-Type", "video/mp4");
-    r.body.pipe(res);
-  } catch (e) {
+    const response = await fetch(url, {
+      headers: {
+        ...HEADERS,
+        range: req.headers.range || ""
+      }
+    });
+
+    res.status(response.status);
+
+    response.headers.forEach((value, name) => {
+      res.setHeader(name, value);
+    });
+
+    response.body.pipe(res);
+
+  } catch (err) {
+    console.log(err);
     res.sendStatus(500);
   }
 });
 
+
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log("Server running on", PORT));
+
